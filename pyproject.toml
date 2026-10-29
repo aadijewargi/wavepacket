@@ -13,7 +13,7 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.22",
     "matplotlib>=3.5",
-    "pillow>=9.0",
+    "pillow>=9.1",
 ]
 keywords = ["quantum mechanics", "schrodinger", "split-step fourier", "simulation", "physics"]
 classifiers = [

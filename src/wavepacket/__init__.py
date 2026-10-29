@@ -8,7 +8,7 @@ from .solver import (
     position_spread,
 )
 from .states import gaussian_packet, harmonic_ground_state, normalize
-from . import analytic, potentials
+from . import analytic, potentials, render, scenes
 
 __version__ = "0.1.0"
 
@@ -24,4 +24,6 @@ __all__ = [
     "normalize",
     "analytic",
     "potentials",
+    "render",
+    "scenes",
 ]
