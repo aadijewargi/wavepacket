@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wavepacket: interactive Schrödinger equation</title>
+<meta name="description" content="Launch quantum wavepackets at slits, barriers and billiards. The 2D time-dependent Schrödinger equation solved live in your browser with the split-step Fourier method.">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --line: #30363d; --text: #e6edf3; --muted: #8b949e;
+    --accent: #58a6ff; --accent-2: #f0883e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  header { max-width: 1100px; margin: 0 auto; padding: 24px 16px 8px; }
+  h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.01em; }
+  h1 span { color: var(--muted); font-weight: 400; }
+  header p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+  main { max-width: 1100px; margin: 0 auto; padding: 12px 16px 32px;
+    display: grid; grid-template-columns: minmax(0, 620px) minmax(260px, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .stage { position: relative; width: 100%; aspect-ratio: 1; border: 1px solid var(--line);
+    border-radius: 8px; overflow: hidden; background: #000; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #view { image-rendering: auto; }
+  #overlay { touch-action: none; cursor: crosshair; }
+  #stats { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted);
+    margin-top: 8px; white-space: pre; overflow-x: auto; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .panel + .panel { margin-top: 14px; }
+  .panel h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+    margin: 0 0 10px; font-weight: 600; }
+  label { display: block; font-size: 0.9rem; margin: 10px 0 4px; }
+  label output { float: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  select, button { font: inherit; color: var(--text); background: #21262d; border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 10px; }
+  select { width: 100%; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button[aria-pressed="true"] { background: #1f6feb33; border-color: var(--accent); color: #cae3ff; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .row > button { flex: 1 1 auto; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 0.9rem; }
+  #note { color: var(--muted); font-size: 0.9rem; margin: 10px 0 0; }
+  .hint { font-size: 0.85rem; color: var(--muted); margin: 8px 0 0; }
+  .wheel { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px;
+    background: conic-gradient(from 90deg, red, magenta, blue, cyan, lime, yellow, red); }
+  footer { max-width: 1100px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 0.85rem; }
+  .math { font-family: "Cambria Math", "STIX Two Math", serif; }
+</style>
+</head>
+<body>
+<header>
+  <h1>wavepacket <span>· the Schrödinger equation, live</span></h1>
+  <p>
+    <span class="math">iħ ∂<sub>t</sub>ψ = −(ħ²/2m)∇²ψ + Vψ</span>, solved in your browser on a
+    grid of up to 256² points with the split-step Fourier method.
+    <strong>Drag on the picture to launch a wavepacket</strong>: where you press sets its
+    position, and the drag sets its momentum.
+  </p>
+</header>
+
+<main>
+  <section>
+    <div class="stage">
+      <canvas id="view" width="256" height="256" aria-label="Simulation view"></canvas>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div id="stats">t = 0</div>
+    <p class="hint">
+      Colour <span class="wheel"></span> = phase of ψ, brightness = |ψ|. The colour bands march at
+      the de Broglie wavelength λ = 2π/k. Edges absorb outgoing waves, so ∫|ψ|² drops as the wave leaves.
+    </p>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>Experiment</h2>
+      <select id="scene" aria-label="Scene"></select>
+      <p id="note"></p>
+      <div id="heightRow">
+        <label for="height"><span id="heightLabel">Wall height</span> <output id="heightVal"></output></label>
+        <input id="height" type="range" min="0" max="300" step="0.5">
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="play">Pause</button>
+        <button id="reset">Relaunch</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Tools</h2>
+      <div class="row">
+        <button data-tool="launch" aria-pressed="true">Launch</button>
+        <button data-tool="draw" aria-pressed="false">Draw wall</button>
+        <button data-tool="erase" aria-pressed="false">Erase</button>
+      </div>
+      <label class="check"><input id="superpose" type="checkbox"> Add to existing ψ (superpose packets)</label>
+      <label for="width">Packet width <output id="widthVal">1.0×</output></label>
+      <input id="width" type="range" min="0.5" max="2.5" step="0.1" value="1">
+      <label for="brush">Wall brush radius</label>
+      <input id="brush" type="range" min="0.2" max="2" step="0.1" value="0.5">
+      <div class="row" style="margin-top:12px"><button id="clearWalls">Clear drawn walls</button></div>
+    </div>
+
+    <div class="panel">
+      <h2>Display & speed</h2>
+      <div class="row">
+        <button data-style="phase" aria-pressed="true">Phase colour</button>
+        <button data-style="density" aria-pressed="false">Probability |ψ|²</button>
+      </div>
+      <label for="speed">Steps per frame <output id="speedVal">3</output></label>
+      <input id="speed" type="range" min="1" max="10" step="1" value="3">
+      <label for="res">Grid</label>
+      <select id="res">
+        <option value="128">128 × 128 (fast)</option>
+        <option value="256" selected>256 × 256</option>
+      </select>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  Source, derivation and validation tests:
+  <a href="https://github.com/aadijewargi/wavepacket">github.com/aadijewargi/wavepacket</a>.
+  Units ħ = m = 1, box 40 × 40, Δt = 0.006.
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
