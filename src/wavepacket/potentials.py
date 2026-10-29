@@ -88,6 +88,20 @@ def gaussian_bump(grid: Grid, height: float, center, width: float) -> np.ndarray
     return height * np.exp(-r2 / (2 * width ** 2))
 
 
+def smooth(grid: Grid, V: np.ndarray, width: float) -> np.ndarray:
+    """Gaussian-blur a potential (via FFT) over a length ``width``.
+
+    Perfectly sharp walls scatter a little amplitude into wavenumbers near
+    the grid's Nyquist limit, whose energy can exceed the wall height; a
+    blur of one or two grid cells removes that artefact without changing the
+    physics on scales of the wavelength.
+    """
+    if width <= 0:
+        return V
+    damp = np.exp(-0.5 * width ** 2 * grid.k2())
+    return np.real(np.fft.ifftn(np.fft.fftn(V) * damp))
+
+
 def absorbing_boundary(grid: Grid, width: float, strength: float = 5.0) -> np.ndarray:
     r"""Quadratic complex absorbing potential in a layer of thickness ``width``.
 
