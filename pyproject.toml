@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wavepacket"
+version = "0.1.0"
+description = "Time-dependent Schrödinger equation in 1D and 2D with the split-step Fourier method: double slits, tunnelling and quantum billiards."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "aadijewargi" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.22",
+    "matplotlib>=3.5",
+    "pillow>=9.0",
+]
+keywords = ["quantum mechanics", "schrodinger", "split-step fourier", "simulation", "physics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+wavepacket = "wavepacket.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/aadijewargi/wavepacket"
+Demo = "https://aadijewargi.github.io/wavepacket/"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
